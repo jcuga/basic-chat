@@ -13,3 +13,11 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+#
+
+# ignore binaries
+basic-chat
+basic-chat.exe
+
+# ignore default chat save file
+chats.json
