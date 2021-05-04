@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/jcuga/golongpoll"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type User struct {
@@ -63,8 +64,10 @@ func main() {
 
 	// Serve static files--doing files explicitly instead of http.FileServer so
 	// we can a) be explicit about what is exposed and b) wrap with http basic auth.
-	serveStatic("/js/golongpoll-client.js", *staticDir, "golongpoll-client.js", "text/javascript", users)
-	serveStatic("/js/main.js", *staticDir, "main.js", "text/javascript", users)
+	serveStatic("/js/client.js", *staticDir, "golongpoll-client.js", "text/javascript", users)
+	serveStatic("/js/home.js", *staticDir, "home.js", "text/javascript", users)
+	serveStatic("/js/chatroom.js", *staticDir, "chatroom.js", "text/javascript", users)
+	serveStatic("/js/common.js", *staticDir, "common.js", "text/javascript", users)
 	serveStatic("/css/main.css", *staticDir, "main.css", "text/css", users)
 	serveStatic("/favicon.svg", *staticDir, "favicon.svg", "image/svg+xml", users)
 	serveStatic("/logout-favicon.svg", *staticDir, "logout-favicon.svg", "image/svg+xml", users)
@@ -113,7 +116,6 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 			w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
 			w.WriteHeader(401)
 			w.Write([]byte("\n"))
-			// TODO: stylign here--inline instead of fetching file (inline faviconicon data too?)
 			fmt.Fprintf(w, `
 			<html>
 			<head>
@@ -122,6 +124,7 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 			</head>
 			<body>
 				<h1>Unauthorized.</h1>
+				<a href="/">Login</a>
 			</body>
 			</html>`)
 			if ok {
@@ -165,6 +168,10 @@ func logoutPage(w http.ResponseWriter, r *http.Request) {
 	`, user)
 }
 
+func sanitizeInput(input string) string {
+	return bluemonday.UGCPolicy().Sanitize(input)
+}
+
 // TODO: list rooms (categories) by latest activity first, have last msg and time.
 func indexPage(w http.ResponseWriter, r *http.Request) {
 	// Wrapped by requireBasicAuth which will enforce that a real user+password was provided.
@@ -189,17 +196,15 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 		<p>Hello, %s.</p>
 		<p><a href="/chat?room=Neat+Stuff">Neat Stuff</a></p>
 		<p><a href="/logout">Logout</a></p>
+
+		<script src="/js/client.js"></script>
+		<script src="/js/common.js"></script>
+		<script src="/js/home.js"></script>
 	</body>
 	</html>
 	`, username)
 }
 
-// TODO: conversation list
-// TODO: input and send button--clear input on send
-// TODO: make inptu a text area?
-// TODO: enter to auto send
-// TODO: logout link--make sure works as expected
-// TODO: escape data--see micro-chat how it does it.
 func chatroomPage(w http.ResponseWriter, r *http.Request) {
 	// Wrapped by requireBasicAuth which will enforce that a real user+password was provided.
 	username, _, ok := r.BasicAuth()
@@ -210,7 +215,6 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Failed to get user.\n"))
 		return
 	}
-	// TODO: need to make sure room is escaped/sanitized! Use sanitized version below
 	room := r.URL.Query().Get("room")
 	if len(room) < 1 {
 		w.WriteHeader(400)
@@ -218,20 +222,33 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		log.Println("ChatRoom MISSING ROOM PARAN -", r.URL, "- username:", username, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
 		return
 	}
+	sanitizedRoom := sanitizeInput(room)
 	log.Println("ChatRoom -", r.URL, "- username:", username, "room:", room, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
 	fmt.Fprintf(w, `
 	<html>
 	<head>
-		<title>BasicChat - %s</title>
+		<title>%s</title>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 		<link rel="stylesheet" href="/css/main.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
-		<p>Hi, %s!.  Welcome to chatroom: %s.</p>
+		<p>Hi, %s!.  Chatroom: %s.</p>
 		<p><a href="/">Home</a></p>
 		<p><a href="/logout">Logout</a></p>
+		<div id="chat-conv"></div>
+		<textarea id="chat-input"></textarea>
+		<button type="button" id="chat-send">Send</button>
+
+		<script>
+			var chatroomCategory="%s";
+			var chatroomUsername="%s";
+		</script>
+
+		<script src="/js/client.js"></script>
+		<script src="/js/common.js"></script>
+		<script src="/js/chatroom.js"></script>
 		</body>
 	</html>
-	`, room, username, room)
+	`, sanitizedRoom, username, sanitizedRoom, sanitizedRoom, username)
 }
