@@ -2,16 +2,20 @@ package main
 
 import (
 	"crypto/subtle"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/jcuga/golongpoll"
 	"github.com/microcosm-cc/bluemonday"
+	cmap "github.com/orcaman/concurrent-map"
 )
 
 type User struct {
@@ -44,10 +48,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	lastEventPerCategoryAddOn := LastEventPerCategoryAddOn{
+		FilePersistor:        *filePersistor,
+		LastEventPerCategory: cmap.New(),
+	}
 	manager, err := golongpoll.StartLongpoll(golongpoll.Options{
 		// hang on to N most recent chats:
 		MaxEventBufferSize: int(*chatHistorySize),
-		AddOn:              filePersistor,
+		AddOn:              &lastEventPerCategoryAddOn,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create chat longpoll manager: %q\n", err)
@@ -61,6 +69,10 @@ func main() {
 	// longpoll pub-sub api:
 	http.HandleFunc("/publish", requireBasicAuth(manager.PublishHandler, users))
 	http.HandleFunc("/events", requireBasicAuth(manager.SubscriptionHandler, users))
+
+	// chat specific api:
+	http.HandleFunc("/last-chats", requireBasicAuth(getLastChatPerCategory(&lastEventPerCategoryAddOn), users))
+	http.HandleFunc("/create-room", requireBasicAuth(getCreateRoom(manager), users))
 
 	// Serve static files--doing files explicitly instead of http.FileServer so
 	// we can a) be explicit about what is exposed and b) wrap with http basic auth.
@@ -198,6 +210,12 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 		<p><a href="/chat?room=Neat+Stuff">Neat Stuff</a></p>
 		<p><a href="/logout">Logout</a></p>
 
+		<form action="/create-room" method="post">
+			<label for="create-room-room">Create Chat Room:</label>
+			<input type="text" id="create-room-room" name="room"><br>
+			<input type="submit" value="Submit">
+		</form>
+
 		<script src="/js/client.js"></script>
 		<script src="/js/common.js"></script>
 		<script src="/js/home.js"></script>
@@ -252,4 +270,96 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		</body>
 	</html>
 	`, sanitizedRoom, username, sanitizedRoom, sanitizedRoom, username)
+}
+
+// Wraps golongpoll.FilePersistorAddOn with logic to keep track of the
+// most recent chat message per category (ie chatroom).
+type LastEventPerCategoryAddOn struct {
+	FilePersistor        golongpoll.FilePersistorAddOn
+	LastEventPerCategory cmap.ConcurrentMap
+}
+
+func (a *LastEventPerCategoryAddOn) OnPublish(event *golongpoll.Event) {
+	a.FilePersistor.OnPublish(event)
+	a.LastEventPerCategory.Set(event.Category, event)
+}
+
+func (a *LastEventPerCategoryAddOn) OnShutdown() {
+	a.FilePersistor.OnShutdown()
+}
+
+func (a *LastEventPerCategoryAddOn) OnLongpollStart() <-chan *golongpoll.Event {
+	fileChan := a.FilePersistor.OnLongpollStart()
+	ch := make(chan *golongpoll.Event, 100)
+	go a.getOnStartInputEvents(fileChan, ch)
+	return ch
+}
+
+func (a *LastEventPerCategoryAddOn) getOnStartInputEvents(fileChan <-chan *golongpoll.Event, outChan chan *golongpoll.Event) {
+	// Pass the fileChan events along while updating the a.LastEventPerCategory map.
+	// Note that events come in in chronological order (oldest first).
+	for {
+		event, ok := <-fileChan
+		if ok {
+			a.LastEventPerCategory.Set(event.Category, event)
+			outChan <- event
+		} else {
+			// channel closed, we're done. Close our out channel.
+			close(outChan)
+			break
+		}
+	}
+}
+
+func getLastChatPerCategory(a *LastEventPerCategoryAddOn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		copiedMap := a.LastEventPerCategory.Items()
+		if jsonData, err := json.Marshal(copiedMap); err == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, string(jsonData))
+		} else {
+			log.Println("ERROR: failed to marshal lastChatPerCategory map.", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+}
+
+func getCreateRoom(lpManager *golongpoll.LongpollManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			log.Println("WARN - createRoom invalid methid:", r.Method)
+			fmt.Fprintf(w, "Method Not Allowed")
+			return
+		}
+
+		// Wrapped by requireBasicAuth which will enforce that a real user+password was provided.
+		username, _, ok := r.BasicAuth()
+		if !ok || len(username) == 0 {
+			// should only be called when user is present in basic auth--so this would be a server logic error
+			// if this ever fails
+			w.WriteHeader(500)
+			w.Write([]byte("Failed to get user.\n"))
+			return
+		}
+
+		r.ParseForm()
+		room := r.Form.Get("room")
+		if len(room) < 1 {
+			w.WriteHeader(400)
+			w.Write([]byte("Url param 'room' is missing or empty.\n"))
+			log.Println("CreateChatRoom MISSING ROOM PARAN -", r.URL, "- username:", username, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
+			return
+		}
+
+		// Generate create-room message. Aside from being informative, this ensures we have
+		// a longpoll category and get an item for this room in getLastChatPerCategory()
+		lpManager.Publish(room, fmt.Sprintf("Chatroom: \"%s\" created by %s.", room, username))
+
+		// Redirect to chatroom
+		newUrl := "/chat?room=" + url.QueryEscape(room)
+		http.Redirect(w, r, newUrl, http.StatusSeeOther)
+	}
 }
