@@ -140,7 +140,8 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 
 func loginOkay(username string, password string, accounts []User) bool {
 	for _, account := range accounts {
-		if subtle.ConstantTimeCompare([]byte(account.Username), []byte(username)) == 1 && subtle.ConstantTimeCompare([]byte(account.Password), []byte(password)) == 1 {
+		if subtle.ConstantTimeCompare([]byte(strings.ToLower(account.Username)), []byte(strings.ToLower(username))) == 1 &&
+			subtle.ConstantTimeCompare([]byte(account.Password), []byte(password)) == 1 {
 			return true
 		}
 	}
