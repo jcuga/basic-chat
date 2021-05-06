@@ -18,9 +18,18 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 )
 
+const (
+	SystemUser = "BasicChat Bot"
+)
+
 type User struct {
 	Username string
 	Password string
+}
+
+type ChatMsg struct {
+	Username string `json:"username"`
+	Message  string `json:"msg"`
 }
 
 func main() {
@@ -82,7 +91,6 @@ func main() {
 	serveStatic("/js/common.js", *staticDir, "common.js", "text/javascript", users)
 	serveStatic("/css/main.css", *staticDir, "main.css", "text/css", users)
 	serveStatic("/favicon.svg", *staticDir, "favicon.svg", "image/svg+xml", users)
-	serveStatic("/logout-favicon.svg", *staticDir, "logout-favicon.svg", "image/svg+xml", users)
 
 	log.Println("Serving on:", *serveAddr, "staticDir at:", *staticDir, "saving chats to:", *persistFilename)
 	log.Println("Listing Users...")
@@ -169,7 +177,6 @@ func logoutPage(w http.ResponseWriter, r *http.Request) {
 	<html>
 	<head>
 		<title>BasicChat - Logged Out</title>
-		<link rel="icon" type="image/svg+xml" href="/logout-favicon.svg">
 		<link rel="stylesheet" href="/css/main.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
@@ -354,9 +361,14 @@ func getCreateRoom(lpManager *golongpoll.LongpollManager) http.HandlerFunc {
 			return
 		}
 
+		chatMsg := ChatMsg{
+			Username: SystemUser,
+			Message:  fmt.Sprintf("Chatroom: \"%s\" created by %s.", room, username),
+		}
+
 		// Generate create-room message. Aside from being informative, this ensures we have
 		// a longpoll category and get an item for this room in getLastChatPerCategory()
-		lpManager.Publish(room, fmt.Sprintf("Chatroom: \"%s\" created by %s.", room, username))
+		lpManager.Publish(room, chatMsg)
 
 		// Redirect to chatroom
 		newUrl := "/chat?room=" + url.QueryEscape(room)

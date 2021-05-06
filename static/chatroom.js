@@ -8,9 +8,9 @@ var client = golongpoll.newClient({
     loggingEnabled: false,
     onEvent: function (event) {
         document.getElementById("chat-conv").insertAdjacentHTML('beforeend',
-            "<div class=\"chat-msg\"><span class=\"chat-timestamp\">" + (new Date(event.timestamp).toLocaleTimeString()) +
-            "</span><span class=\"chat-username\">" + sanitize(event.data["username"]) + "</span>" +
-            "<span class=\"chat-body\">" + formatChatBody(event.data["msg"]) + "</span>" +
+            "<div class=\"chat-msg\"><span class=\"chat-timestamp\">" + (new Date(event.timestamp).toLocaleString()) +
+            " </span><span class=\"chat-username\">" + sanitize(event.data["username"]) + "</span>" +
+            " <span class=\"chat-body\">" + formatChatBody(event.data["msg"]) + "</span>" +
             "</div>");
     },
 });
