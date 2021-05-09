@@ -73,7 +73,8 @@ func main() {
 	// web app pages
 	http.HandleFunc("/", requireBasicAuth(indexPage, users))
 	http.HandleFunc("/chat", requireBasicAuth(chatroomPage, users))
-	http.HandleFunc("/logout", requireBasicAuth(logoutPage, users))
+	http.HandleFunc("/logout", requireBasicAuth(logoutAction, users))
+	http.HandleFunc("/logged-out", logoutPage)
 
 	// longpoll pub-sub api:
 	http.HandleFunc("/publish", requireBasicAuth(manager.PublishHandler, users))
@@ -141,6 +142,9 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 			<head>
 				<title>Unauthorized</title>
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<style>
+					<!-- TODO style here without loading auth protected style sheet -->
+				</style>
 			</head>
 			<body>
 				<h1>Unauthorized.</h1>
@@ -168,24 +172,35 @@ func loginOkay(username string, password string, accounts []User) bool {
 	return false
 }
 
-func logoutPage(w http.ResponseWriter, r *http.Request) {
-	// This should force browsers to forget/re-ask for creds.
-	w.WriteHeader(401)
+func logoutAction(w http.ResponseWriter, r *http.Request) {
 	user, _, _ := r.BasicAuth()
 	log.Println("Logout -", r.URL, "- username:", user, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
+	newUrl := fmt.Sprintf("http://logmeout:logmeout@%s/logged-out", r.Host)
+	http.Redirect(w, r, newUrl, http.StatusSeeOther)
+}
+
+func logoutPage(w http.ResponseWriter, r *http.Request) {
+	// This should force browsers to forget/re-ask for creds.
+	// NOTE: safari/iOS will still retain creds even when getting this 401, so
+	// updated to have a 2-step logout.  logoutAction now redirects to here with
+	// bogus creds in the URL to force the badly behaving browsers to retain the
+	// bogus creds.
+	w.WriteHeader(401)
 	fmt.Fprintf(w, `
 	<html>
 	<head>
-		<title>BasicChat - Logged Out</title>
-		<link rel="stylesheet" href="/css/main.css">
+		<title>Logged Out</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	</head>
+			<style>
+				<!-- TODO style here without loading auth protected style sheet -->
+			</style>
+		</head>
 	<body>
-		<p>Logged out as %s.</p>
+		<p>Logged out.</p>
 		<p><a href="/">Home</a></p>
 	</body>
 	</html>
-	`, user)
+	`)
 }
 
 func sanitizeInput(input string) string {
@@ -214,7 +229,9 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 		<p>Hello, %s.</p>
-		<p><a href="/chat?room=Neat+Stuff">Neat Stuff</a></p>
+		<p><a href="/chat?room=Awesome">Awesome Chatroom</a></p>
+		<p><a href="/chat?room=Lame">Lame Chatroom</a></p>
+		<p><a href="/chat?room=Feedback">Feedback</a></p>
 		<p><a href="/logout">Logout</a></p>
 
 		<form action="/create-room" method="post">
