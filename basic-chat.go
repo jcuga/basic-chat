@@ -73,8 +73,6 @@ func main() {
 	// web app pages
 	http.HandleFunc("/", requireBasicAuth(indexPage, users))
 	http.HandleFunc("/chat", requireBasicAuth(chatroomPage, users))
-	http.HandleFunc("/logout", requireBasicAuth(logoutAction, users))
-	http.HandleFunc("/logged-out", logoutPage)
 
 	// longpoll pub-sub api:
 	http.HandleFunc("/publish", requireBasicAuth(manager.PublishHandler, users))
@@ -148,7 +146,7 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 			</head>
 			<body>
 				<h1>Unauthorized.</h1>
-				<a href="/">Login</a>
+				<a href="./">Login</a>
 			</body>
 			</html>`)
 			if ok {
@@ -158,6 +156,7 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 			}
 			return
 		}
+
 		handler(w, r)
 	}
 }
@@ -172,42 +171,10 @@ func loginOkay(username string, password string, accounts []User) bool {
 	return false
 }
 
-func logoutAction(w http.ResponseWriter, r *http.Request) {
-	user, _, _ := r.BasicAuth()
-	log.Println("Logout -", r.URL, "- username:", user, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
-	newUrl := fmt.Sprintf("http://logmeout:logmeout@%s/logged-out", r.Host)
-	http.Redirect(w, r, newUrl, http.StatusSeeOther)
-}
-
-func logoutPage(w http.ResponseWriter, r *http.Request) {
-	// This should force browsers to forget/re-ask for creds.
-	// NOTE: safari/iOS will still retain creds even when getting this 401, so
-	// updated to have a 2-step logout.  logoutAction now redirects to here with
-	// bogus creds in the URL to force the badly behaving browsers to retain the
-	// bogus creds.
-	w.WriteHeader(401)
-	fmt.Fprintf(w, `
-	<html>
-	<head>
-		<title>Logged Out</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<style>
-				<!-- TODO style here without loading auth protected style sheet -->
-			</style>
-		</head>
-	<body>
-		<p>Logged out.</p>
-		<p><a href="/">Home</a></p>
-	</body>
-	</html>
-	`)
-}
-
 func sanitizeInput(input string) string {
 	return bluemonday.UGCPolicy().Sanitize(input)
 }
 
-// TODO: list rooms (categories) by latest activity first, have last msg and time.
 func indexPage(w http.ResponseWriter, r *http.Request) {
 	// Wrapped by requireBasicAuth which will enforce that a real user+password was provided.
 	username, _, ok := r.BasicAuth()
@@ -223,26 +190,25 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 	<html>
 	<head>
 		<title>BasicChat - Home</title>
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-		<link rel="stylesheet" href="/css/main.css">
+		<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+		<link rel="stylesheet" href="./css/main.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
 		<p>Hello, %s.</p>
-		<p><a href="/chat?room=Awesome">Awesome Chatroom</a></p>
-		<p><a href="/chat?room=Lame">Lame Chatroom</a></p>
-		<p><a href="/chat?room=Feedback">Feedback</a></p>
-		<p><a href="/logout">Logout</a></p>
+		<p><a href="./chat?room=Awesome">Awesome Chatroom</a></p>
+		<p><a href="./chat?room=Lame">Lame Chatroom</a></p>
+		<p><a href="./chat?room=Feedback">Feedback</a></p>
 
-		<form action="/create-room" method="post">
+		<form action="./create-room" method="post">
 			<label for="create-room-room">Create Chat Room:</label>
 			<input type="text" id="create-room-room" name="room"><br>
 			<input type="submit" value="Submit">
 		</form>
 
-		<script src="/js/client.js"></script>
-		<script src="/js/common.js"></script>
-		<script src="/js/home.js"></script>
+		<script src="./js/client.js"></script>
+		<script src="./js/common.js"></script>
+		<script src="./js/home.js"></script>
 	</body>
 	</html>
 	`, username)
@@ -271,14 +237,13 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 	<html>
 	<head>
 		<title>%s</title>
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-		<link rel="stylesheet" href="/css/main.css">
+		<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+		<link rel="stylesheet" href="./css/main.css">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
-		<p>Hi, %s!.  Chatroom: %s.</p>
-		<p><a href="/">Home</a></p>
-		<p><a href="/logout">Logout</a></p>
+		<p>Hi, %s! Chatroom: %s.</p>
+		<p><a href="./">Home</a></p>
 		<div id="chat-conv"></div>
 		<textarea id="chat-input"></textarea>
 		<button type="button" id="chat-send">Send</button>
@@ -288,9 +253,9 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 			var chatroomUsername="%s";
 		</script>
 
-		<script src="/js/client.js"></script>
-		<script src="/js/common.js"></script>
-		<script src="/js/chatroom.js"></script>
+		<script src="./js/client.js"></script>
+		<script src="./js/common.js"></script>
+		<script src="./js/chatroom.js"></script>
 		</body>
 	</html>
 	`, sanitizedRoom, username, sanitizedRoom, sanitizedRoom, username)
@@ -388,7 +353,7 @@ func getCreateRoom(lpManager *golongpoll.LongpollManager) http.HandlerFunc {
 		lpManager.Publish(room, chatMsg)
 
 		// Redirect to chatroom
-		newUrl := "/chat?room=" + url.QueryEscape(room)
+		newUrl := "./chat?room=" + url.QueryEscape(room)
 		http.Redirect(w, r, newUrl, http.StatusSeeOther)
 	}
 }

@@ -1,7 +1,7 @@
 var client = golongpoll.newClient({
-    subscribeUrl: "/events",
+    subscribeUrl: "./events",
     category: chatroomCategory,
-    publishUrl: "/publish",
+    publishUrl: "./publish",
     // Get all events ever for given chatroom, the UI will show only the last N
     // and page backwards/show-more.
     sinceTime: 1,
