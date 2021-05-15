@@ -1,0 +1,17 @@
+.chat-msg {
+    padding: 0.25em;
+}
+
+.chat-timestamp {
+    font-style: italic;
+}
+
+.chat-username {
+    font-weight: bold;
+    margin-left: 0.25em;
+    margin-right: 0.5em;
+}
+
+.chat-body {
+
+}
