@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -75,7 +77,7 @@ func main() {
 	http.HandleFunc("/chat", requireBasicAuth(chatroomPage, users))
 
 	// longpoll pub-sub api:
-	http.HandleFunc("/publish", requireBasicAuth(manager.PublishHandler, users))
+	http.HandleFunc("/publish", requireBasicAuth(wrapPublishHandler(manager.PublishHandler), users))
 	http.HandleFunc("/events", requireBasicAuth(manager.SubscriptionHandler, users))
 
 	// chat specific api:
@@ -169,6 +171,61 @@ func loginOkay(username string, password string, accounts []User) bool {
 		}
 	}
 	return false
+}
+
+// ensure published data's username matches the http auth's username
+// this also only allows the ChatMsg object to be published, not arbitrary data
+// payload types.
+func wrapPublishHandler(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bodyBytes, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close() //  must close
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		var pubData golongpoll.PublishData
+		err := json.Unmarshal(bodyBytes, &pubData)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "{\"error\": \"Invalid POST body json.\"}")
+			log.Printf("WARN - prePublish - Invalid post body json, error: %v\n", err)
+			return
+		}
+
+		username, _, ok := r.BasicAuth()
+		if !ok || len(username) == 0 {
+			// should only be called when user is present in basic auth--so this would be a server logic error
+			// if this ever fails
+			w.WriteHeader(500)
+			w.Write([]byte("Failed to get user.\n"))
+			return
+		}
+
+		dataMap, ok := pubData.Data.(map[string]interface{})
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "{\"error\": \"Invalid publish data, unexpected data type.\"}")
+			log.Printf("WARN - prePublish - Invalid publish data, must be map[string]interface{}, got %T.\n", pubData.Data)
+			return
+		}
+
+		chatUsername, ok := dataMap["username"].(string)
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "{\"error\": \"Invalid publish data, unexpected chat username data type.\"}")
+			log.Printf("WARN - prePublish - Invalid publish data, expected username as string, got: %T\n", chatUsername)
+			return
+		}
+
+		if strings.ToLower(chatUsername) != strings.ToLower(username) {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "{\"error\": \"Invalid publish data, username mismatch.\"}")
+			log.Printf("WARN - prePublish - Invalid publish data, username mismatch.  Logged in as: %s, but got: %s.\n", username, chatUsername)
+			return
+		}
+
+		// TODO: ensure user auth and username in data match (case insentive?) else punt
+		handler(w, r)
+	}
 }
 
 func sanitizeInput(input string) string {
