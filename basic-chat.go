@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/jcuga/golongpoll"
 	"github.com/microcosm-cc/bluemonday"
@@ -72,26 +73,32 @@ func main() {
 		log.Fatalf("Failed to create chat longpoll manager: %q\n", err)
 	}
 
+	userLastActiveMap := cmap.New()
+	for _, user := range users {
+		userLastActiveMap.Set(strings.ToLower(user.Username), int64(0))
+	}
+
 	// web app pages
-	http.HandleFunc("/", requireBasicAuth(indexPage, users))
-	http.HandleFunc("/chat", requireBasicAuth(chatroomPage, users))
+	http.HandleFunc("/", requireBasicAuth(indexPage, users, userLastActiveMap))
+	http.HandleFunc("/chat", requireBasicAuth(chatroomPage, users, userLastActiveMap))
 
 	// longpoll pub-sub api:
-	http.HandleFunc("/publish", requireBasicAuth(wrapPublishHandler(manager.PublishHandler), users))
-	http.HandleFunc("/events", requireBasicAuth(manager.SubscriptionHandler, users))
+	http.HandleFunc("/publish", requireBasicAuth(wrapPublishHandler(manager.PublishHandler), users, userLastActiveMap))
+	http.HandleFunc("/events", requireBasicAuth(manager.SubscriptionHandler, users, userLastActiveMap))
 
 	// chat specific api:
-	http.HandleFunc("/last-chats", requireBasicAuth(getLastChatPerCategory(&lastEventPerCategoryAddOn), users))
-	http.HandleFunc("/create-room", requireBasicAuth(getCreateRoom(manager), users))
+	http.HandleFunc("/last-chats", requireBasicAuth(getLastChatPerCategory(&lastEventPerCategoryAddOn), users, userLastActiveMap))
+	http.HandleFunc("/create-room", requireBasicAuth(getCreateRoom(manager), users, userLastActiveMap))
+	http.HandleFunc("/users", requireBasicAuth(getUsers(users, userLastActiveMap), users, userLastActiveMap))
 
 	// Serve static files--doing files explicitly instead of http.FileServer so
 	// we can a) be explicit about what is exposed and b) wrap with http basic auth.
-	serveStatic("/js/client.js", *staticDir, "golongpoll-client.js", "text/javascript", users)
-	serveStatic("/js/home.js", *staticDir, "home.js", "text/javascript", users)
-	serveStatic("/js/chatroom.js", *staticDir, "chatroom.js", "text/javascript", users)
-	serveStatic("/js/common.js", *staticDir, "common.js", "text/javascript", users)
-	serveStatic("/css/main.css", *staticDir, "main.css", "text/css", users)
-	serveStatic("/favicon.svg", *staticDir, "favicon.svg", "image/svg+xml", users)
+	serveStatic("/js/client.js", *staticDir, "golongpoll-client.js", "text/javascript", users, userLastActiveMap)
+	serveStatic("/js/home.js", *staticDir, "home.js", "text/javascript", users, userLastActiveMap)
+	serveStatic("/js/chatroom.js", *staticDir, "chatroom.js", "text/javascript", users, userLastActiveMap)
+	serveStatic("/js/common.js", *staticDir, "common.js", "text/javascript", users, userLastActiveMap)
+	serveStatic("/css/main.css", *staticDir, "main.css", "text/css", users, userLastActiveMap)
+	serveStatic("/favicon.svg", *staticDir, "favicon.svg", "image/svg+xml", users, userLastActiveMap)
 
 	log.Println("Serving on:", *serveAddr, "staticDir at:", *staticDir, "saving chats to:", *persistFilename)
 	log.Println("Listing Users...")
@@ -119,17 +126,17 @@ func parseAccounts(input string) []User {
 	return users
 }
 
-func serveStatic(url string, staticDir string, staticFilename string, contentType string, users []User) {
+func serveStatic(url string, staticDir string, staticFilename string, contentType string, users []User, userLastActiveMap cmap.ConcurrentMap) {
 	http.HandleFunc(url, requireBasicAuth(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", contentType)
 			http.ServeFile(w, r, filepath.Join(staticDir, staticFilename))
-		}, users))
+		}, users, userLastActiveMap))
 }
 
 // Modified flavor of function from: https://stackoverflow.com/a/39591234
 // Updated to take a list of acceptable logins instead of a single user/password.
-func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFunc {
+func requireBasicAuth(handler http.HandlerFunc, accounts []User, userLastActiveMap cmap.ConcurrentMap) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
 		realm := "Please enter your username and password for this site"
@@ -143,7 +150,7 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 				<title>Unauthorized</title>
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<style>
-					<!-- TODO style here without loading auth protected style sheet -->
+					h1 { font-size: 5em; }
 				</style>
 			</head>
 			<body>
@@ -158,6 +165,9 @@ func requireBasicAuth(handler http.HandlerFunc, accounts []User) http.HandlerFun
 			}
 			return
 		}
+
+		// Update last active time for user--used for online/idle/offline statuses
+		userLastActiveMap.Set(strings.ToLower(user), time.Now().UnixNano()/int64(time.Millisecond))
 
 		handler(w, r)
 	}
@@ -223,7 +233,6 @@ func wrapPublishHandler(handler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// TODO: ensure user auth and username in data match (case insentive?) else punt
 		handler(w, r)
 	}
 }
@@ -367,6 +376,21 @@ func getLastChatPerCategory(a *LastEventPerCategoryAddOn) http.HandlerFunc {
 			io.WriteString(w, string(jsonData))
 		} else {
 			log.Println("ERROR: failed to marshal lastChatPerCategory map.", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+}
+
+func getUsers(users []User, userLastActiveMap cmap.ConcurrentMap) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		copiedMap := userLastActiveMap.Items()
+		if jsonData, err := json.Marshal(copiedMap); err == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, string(jsonData))
+		} else {
+			log.Println("ERROR: failed to marshal userLastActiveMap.", err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
