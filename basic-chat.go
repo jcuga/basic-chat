@@ -35,6 +35,13 @@ type ChatMsg struct {
 	Message  string `json:"msg"`
 }
 
+type UserMention struct {
+	Room            string `json:"room"`
+	Sender          string `json:"sender"`
+	Message         string `json:"msg"`
+	OriginalMessage string `json:"original_msg"`
+}
+
 func main() {
 	serveAddr := flag.String("serve", "127.0.0.1:8080", "Address to serve HTTP on.")
 	staticDir := flag.String("static", "./static/", "where the static directory is located relative to where this binary runs.")
@@ -83,7 +90,7 @@ func main() {
 	http.HandleFunc("/chat", requireBasicAuth(chatroomPage, users, userLastActiveMap))
 
 	// longpoll pub-sub api:
-	http.HandleFunc("/publish", requireBasicAuth(wrapPublishHandler(manager.PublishHandler), users, userLastActiveMap))
+	http.HandleFunc("/publish", requireBasicAuth(wrapPublishHandler(manager, users), users, userLastActiveMap))
 	http.HandleFunc("/events", requireBasicAuth(manager.SubscriptionHandler, users, userLastActiveMap))
 
 	// chat specific api:
@@ -186,7 +193,7 @@ func loginOkay(username string, password string, accounts []User) bool {
 // ensure published data's username matches the http auth's username
 // this also only allows the ChatMsg object to be published, not arbitrary data
 // payload types.
-func wrapPublishHandler(handler http.HandlerFunc) http.HandlerFunc {
+func wrapPublishHandler(lpManager *golongpoll.LongpollManager, users []User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bodyBytes, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close() //  must close
@@ -222,7 +229,7 @@ func wrapPublishHandler(handler http.HandlerFunc) http.HandlerFunc {
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "{\"error\": \"Invalid publish data, unexpected chat username data type.\"}")
-			log.Printf("WARN - prePublish - Invalid publish data, expected username as string, got: %T\n", chatUsername)
+			log.Printf("WARN - prePublish - Invalid publish data, expected username as string, got: %T\n", dataMap["username"])
 			return
 		}
 
@@ -233,7 +240,32 @@ func wrapPublishHandler(handler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		handler(w, r)
+		msg, ok := dataMap["msg"].(string)
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "{\"error\": \"Invalid publish data, unexpected chat msg data type.\"}")
+			log.Printf("WARN - prePublish - Invalid publish data, expected msg as string, got: %T\n", dataMap["msg"])
+			return
+		}
+
+		// Look for @username and issue a notification for any mentions
+		normMsg := strings.ToLower(msg)
+		for _, user := range users {
+			item := "@" + strings.ToLower(user.Username)
+			if strings.Contains(normMsg, item) {
+				category := "_____" + item
+				userMention := UserMention{
+					Message: fmt.Sprintf("%s mentioned you in room: %s", username, pubData.Category),
+					// TODO: on client, if make a link to room, make sure normalied same way so links don't break
+					Room:            pubData.Category,
+					OriginalMessage: msg,
+					Sender:          username,
+				}
+				lpManager.Publish(category, userMention)
+			}
+		}
+
+		lpManager.PublishHandler(w, r)
 	}
 }
 
