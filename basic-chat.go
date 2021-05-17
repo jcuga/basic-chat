@@ -248,6 +248,13 @@ func wrapPublishHandler(lpManager *golongpoll.LongpollManager, users []User) htt
 			return
 		}
 
+		if len(msg) > 1024*16 {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "{\"error\": \"Invalid publish data, message must be <= 16kb.\"}")
+			log.Printf("WARN - prePublish - Message too long, got length: %d, must be < 16kb\n", len(msg))
+			return
+		}
+
 		// Look for @username and issue a notification for any mentions
 		normMsg := strings.ToLower(msg)
 		for _, user := range users {
@@ -257,6 +264,7 @@ func wrapPublishHandler(lpManager *golongpoll.LongpollManager, users []User) htt
 				userMention := UserMention{
 					Message: fmt.Sprintf("%s mentioned you in room: %s", username, pubData.Category),
 					// TODO: on client, if make a link to room, make sure normalied same way so links don't break
+					// TODO: put display room (sanitized) and room link (sanitized/working/same as other places)
 					Room:            pubData.Category,
 					OriginalMessage: msg,
 					Sender:          username,
@@ -343,7 +351,7 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		<p>Hi, %s! Chatroom: %s.</p>
 		<p><a href="./">Home</a></p>
 		<div id="chat-conv"></div>
-		<textarea id="chat-input"></textarea>
+		<textarea id="chat-input" maxlength="16384"></textarea>
 		<button type="button" id="chat-send">Send</button>
 
 		<script>
@@ -400,6 +408,9 @@ func (a *LastEventPerCategoryAddOn) getOnStartInputEvents(fileChan <-chan *golon
 
 func getLastChatPerCategory(a *LastEventPerCategoryAddOn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		username, _, _ := r.BasicAuth()
+		log.Println("getLastChatPerCategory -", r.URL, "- username:", username, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
+
 		copiedMap := a.LastEventPerCategory.Items()
 		if jsonData, err := json.Marshal(copiedMap); err == nil {
 			w.Header().Set("Content-Type", "application/json")
@@ -415,6 +426,9 @@ func getLastChatPerCategory(a *LastEventPerCategoryAddOn) http.HandlerFunc {
 
 func getUsers(users []User, userLastActiveMap cmap.ConcurrentMap) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		username, _, _ := r.BasicAuth()
+		log.Println("getUsers -", r.URL, "- username:", username, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
+
 		copiedMap := userLastActiveMap.Items()
 		if jsonData, err := json.Marshal(copiedMap); err == nil {
 			w.Header().Set("Content-Type", "application/json")
@@ -443,6 +457,7 @@ func getCreateRoom(lpManager *golongpoll.LongpollManager) http.HandlerFunc {
 			// should only be called when user is present in basic auth--so this would be a server logic error
 			// if this ever fails
 			w.WriteHeader(500)
+			log.Println("ERROR - Failed to get user.")
 			w.Write([]byte("Failed to get user.\n"))
 			return
 		}
@@ -455,6 +470,8 @@ func getCreateRoom(lpManager *golongpoll.LongpollManager) http.HandlerFunc {
 			log.Println("CreateChatRoom MISSING ROOM PARAN -", r.URL, "- username:", username, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
 			return
 		}
+
+		log.Println("createRoom -", r.URL, "- username:", username, "room:", room, "IP:", r.RemoteAddr, "X-FORWARDED-FOR:", r.Header.Get("X-FORWARDED-FOR"))
 
 		chatMsg := ChatMsg{
 			Username: SystemUser,

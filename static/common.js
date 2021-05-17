@@ -20,6 +20,10 @@ function formatChatBody(msg) {
     // turn newlines into <br>
     sanitizedBody = sanitizedBody.replace(/(?:\r\n|\r|\n)/g, '<br>');
 
+    // preserve spaces and turn tabs into spaces:
+    sanitizedBody = sanitizedBody.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+    sanitizedBody = sanitizedBody.replace(/\s/g, '&nbsp;');
+
     // TODO: add span around user mentions
 
     return sanitizedBody;
