@@ -15,18 +15,36 @@ function sanitize(string) {
 function formatChatBody(msg) {
     // escape html chars
     var sanitizedBody = sanitize(msg);
-    // replace more than two consecutive newlines
-    sanitizedBody = sanitizedBody.replace(/\n\s*\n\s*\n/g, '\n\n');
-    // turn newlines into <br>
-    sanitizedBody = sanitizedBody.replace(/(?:\r\n|\r|\n)/g, '<br>');
 
-    // preserve spaces and turn tabs into spaces:
-    sanitizedBody = sanitizedBody.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-    sanitizedBody = sanitizedBody.replace(/\s/g, '&nbsp;');
+    // special cases:
+    if (sanitizedBody.startsWith("code:") || sanitizedBody.startsWith("Code:")) {
+        return "<div class=\"chat-msg-code\">" + preserveSpaces(sanitizedBody.substring(5).trim()) + "<div>";
+    }
+
+    if (sanitizedBody.startsWith("link:") || sanitizedBody.startsWith("Link:")) {
+        var linkCandidate = sanitizedBody.substring(5).trim();
+        if (!linkCandidate.includes("\n")) {
+            if (linkCandidate.startsWith("www.")) {
+                linkCandidate = "http://" + linkCandidate;
+            }
+            if (linkCandidate.toLowerCase().startsWith("http://") || linkCandidate.toLowerCase().startsWith("https://")) {
+                return "<a class=\"chat-msg-link\" target=\"_blank\" rel=\"noopener noreferrer\" href=\"" + linkCandidate + "\">" + linkCandidate + "</a>";
+            }
+        }
+    }
 
     // TODO: add span around user mentions
+    return preserveSpaces(sanitizedBody);
+}
 
-    return sanitizedBody;
+function preserveSpaces(input) {
+    // replace more than two consecutive newlines
+    input = input.replace(/\n\s*\n\s*\n/g, '\n\n');
+    // turn newlines into <br>
+    input = input.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    input = input.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+    input = input.replace(/\s/g, '&nbsp;');
+    return input;
 }
 
 // Show timestamp as time if within last 24 hours, otherwise datetime
