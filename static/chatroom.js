@@ -7,11 +7,8 @@ var client = golongpoll.newClient({
     sinceTime: 1,
     loggingEnabled: false,
     onEvent: function (event) {
-        document.getElementById("chat-conv").insertAdjacentHTML('beforeend',
-            "<div class=\"chat-msg\"><span class=\"chat-timestamp\">" + (new Date(event.timestamp).toLocaleString()) +
-            " </span><span class=\"chat-username\">" + sanitize(event.data["username"]) + "</span>" +
-            " <span class=\"chat-body\">" + formatChatBody(event.data["msg"]) + "</span>" +
-            "</div>");
+        document.getElementById("chat-conv").insertAdjacentHTML('beforeend', 
+            getChatMsgHtml(event.timestamp, event.data["username"], event.data["msg"], currentUsername));
     },
 });
 
@@ -30,7 +27,7 @@ sendButton.onclick = function(event) {
         return;
     }
     sendButton.disabled = true;
-    client.publish(chatroomCategory, {username: chatroomUsername, msg: message},
+    client.publish(chatroomCategory, {username: currentUsername, msg: message},
         function () {
             chatInput.value = '';
             chatInput.focus();

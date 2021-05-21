@@ -28,3 +28,22 @@ function formatChatBody(msg) {
 
     return sanitizedBody;
 }
+
+// Show timestamp as time if within last 24 hours, otherwise datetime
+function chatTimestamp(timestamp) {
+    var date = new Date(timestamp);
+    var deltaHours = Math.floor((Date.now() - date) / (1000*60*60))
+    if (deltaHours < 24) {
+        return date.toLocaleTimeString();
+    } else {
+        return date.toLocaleString();
+    }
+}
+
+function getChatMsgHtml(timestamp, sender, msg, currentUser) {
+    var msgSenderClass = currentUser.toLowerCase() == sender.toLowerCase() ? "chat-from-me" : "chat-from-other";
+    return "<div class=\"chat-msg\"><span class=\"chat-timestamp\">" + (chatTimestamp(timestamp)) +
+            " </span><span class=\"chat-username " + msgSenderClass + "\">" + sanitize(sender) + "</span>" +
+            " <span class=\"chat-body\">" + formatChatBody(msg) + "</span>" +
+            "</div>"
+}

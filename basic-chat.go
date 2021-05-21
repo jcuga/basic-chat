@@ -36,10 +36,12 @@ type ChatMsg struct {
 }
 
 type UserMention struct {
-	Room            string `json:"room"`
-	Sender          string `json:"sender"`
-	Message         string `json:"msg"`
-	OriginalMessage string `json:"original_msg"`
+	DisplayRoom      string `json:"room"`
+	RoomLink         string `json:"room_link"`
+	RoomNotSanitized string `json:"room_original"`
+	Sender           string `json:"sender"`
+	Message          string `json:"msg"`
+	OriginalMessage  string `json:"original_msg"`
 }
 
 func main() {
@@ -262,12 +264,12 @@ func wrapPublishHandler(lpManager *golongpoll.LongpollManager, users []User) htt
 			if strings.Contains(normMsg, item) {
 				category := "_____" + item
 				userMention := UserMention{
-					Message: fmt.Sprintf("%s mentioned you in room: %s", username, pubData.Category),
-					// TODO: on client, if make a link to room, make sure normalied same way so links don't break
-					// TODO: put display room (sanitized) and room link (sanitized/working/same as other places)
-					Room:            pubData.Category,
-					OriginalMessage: msg,
-					Sender:          username,
+					Message:          fmt.Sprintf("%s mentioned you in room: %s", username, pubData.Category),
+					RoomLink:         "./chat?room=" + url.QueryEscape(pubData.Category),
+					DisplayRoom:      sanitizeInput(pubData.Category),
+					RoomNotSanitized: pubData.Category,
+					OriginalMessage:  msg,
+					Sender:           username,
 				}
 				lpManager.Publish(category, userMention)
 			}
@@ -301,7 +303,9 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
+		<script>var currentUsername = "%s";</script>
 		<p>Hello, %s.</p>
+		<div id="recent-rooms"></div>
 		<p><a href="./chat?room=Awesome">Awesome Chatroom</a></p>
 		<p><a href="./chat?room=Lame">Lame Chatroom</a></p>
 		<p><a href="./chat?room=Feedback">Feedback</a></p>
@@ -317,7 +321,7 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 		<script src="./js/home.js"></script>
 	</body>
 	</html>
-	`, username)
+	`, username, username)
 }
 
 func chatroomPage(w http.ResponseWriter, r *http.Request) {
@@ -356,7 +360,7 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 
 		<script>
 			var chatroomCategory="%s";
-			var chatroomUsername="%s";
+			var currentUsername="%s";
 		</script>
 
 		<script src="./js/client.js"></script>

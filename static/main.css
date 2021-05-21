@@ -4,12 +4,21 @@
 
 .chat-timestamp {
     font-style: italic;
+    color: #707070;
 }
 
 .chat-username {
     font-weight: bold;
     margin-left: 0.25em;
     margin-right: 0.5em;
+}
+
+.chat-username.chat-from-me {
+    color: blue;
+}
+
+.chat-username.chat-from-other {
+    color: red;
 }
 
 .chat-body {
