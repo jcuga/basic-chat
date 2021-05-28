@@ -48,11 +48,31 @@ function preserveSpaces(input) {
 // Show timestamp as time if within last 24 hours, otherwise datetime
 function chatTimestamp(timestamp) {
     var date = new Date(timestamp);
-    var deltaHours = Math.floor((Date.now() - date) / (1000*60*60))
+    var deltaHours = Math.floor((Date.now() - date) / (1000*60*60));
     if (deltaHours < 24) {
         return date.toLocaleTimeString();
     } else {
         return date.toLocaleString();
+    }
+}
+
+function timeAgoTimestamp(timestamp) {
+    var date = new Date(timestamp);
+    var deltaSeconds = Math.floor((Date.now() - date) / (1000));
+    if (deltaSeconds < 60) {
+        return "Less than a minute ago";
+    } else if (deltaSeconds < 2*60) {
+        return "1 minute ago";
+    } else if (deltaSeconds < 60*60) {
+        return Math.floor(deltaSeconds/60) + " minutes ago";
+    } else if (deltaSeconds < 2*60*60) {
+        return "1 hour ago";
+    } else if (deltaSeconds < 24*60*60) {
+        return Math.floor(deltaSeconds/(60*60)) + " hours ago";
+    } else if (deltaSeconds < 2*24*60*60) {
+        return "1 day ago";
+    } else {
+        return Math.floor(deltaSeconds/(60*60*24)) + " days ago";
     }
 }
 
