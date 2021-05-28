@@ -1,14 +1,12 @@
 function sanitize(string) {
     const map = {
-        '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
         "'": '&#x27;',
-        "/": '&#x2F;',
         '`': '&grave;',
     };
-    const reg = /[&<>"'/]/ig;
+    const reg = /[<>"']/ig;
     return string.replace(reg, (match)=>(map[match]));
 }
 
@@ -17,11 +15,11 @@ function formatChatBody(msg) {
     var sanitizedBody = sanitize(msg);
 
     // special cases:
-    if (sanitizedBody.startsWith("code:") || sanitizedBody.startsWith("Code:")) {
+    if (sanitizedBody.startsWith("code:") || sanitizedBody.startsWith("Code:") || sanitizedBody.startsWith("CODE:")) {
         return "<div class=\"chat-msg-code\">" + preserveSpaces(sanitizedBody.substring(5).trim()) + "<div>";
     }
 
-    if (sanitizedBody.startsWith("link:") || sanitizedBody.startsWith("Link:")) {
+    if (sanitizedBody.startsWith("link:") || sanitizedBody.startsWith("Link:") || sanitizedBody.startsWith("LINK:")) {
         var linkCandidate = sanitizedBody.substring(5).trim();
         if (!linkCandidate.includes("\n")) {
             if (linkCandidate.startsWith("www.")) {
