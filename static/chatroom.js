@@ -1,3 +1,6 @@
+var roomHeader = document.getElementById("room-header");
+roomHeader.innerHTML = "Hello, " + sanitize(currentUsername) + ". Room: " + sanitize(chatroomCategory);
+
 var client = golongpoll.newClient({
     subscribeUrl: "./events",
     category: chatroomCategory,

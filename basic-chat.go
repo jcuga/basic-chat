@@ -304,24 +304,26 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 		<script>var currentUsername = "%s";</script>
-		<p>Hello, %s.</p>
-		<div id="recent-rooms"></div>
-		<p><a href="./chat?room=Awesome">Awesome Chatroom</a></p>
-		<p><a href="./chat?room=Lame">Lame Chatroom</a></p>
-		<p><a href="./chat?room=Feedback">Feedback</a></p>
+		<div id="home-header"></div>
 
+		<h2>Topics</h2>
+		<div id="recent-rooms"></div>
+
+		<h2>Create Topic</h2>
 		<form action="./create-room" method="post">
 			<label for="create-room-room">Create Chat Room:</label>
 			<input type="text" id="create-room-room" name="room"><br>
 			<input type="submit" value="Submit">
 		</form>
+		<h2>Users</h2>
+		<div id="recent-users"></div>
 
 		<script src="./js/client.js"></script>
 		<script src="./js/common.js"></script>
 		<script src="./js/home.js"></script>
 	</body>
 	</html>
-	`, username, username)
+	`, username)
 }
 
 func chatroomPage(w http.ResponseWriter, r *http.Request) {
@@ -352,7 +354,7 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
-		<p>Hi, %s! Chatroom: %s.</p>
+		<div id="room-header"></div>
 		<p><a href="./">Home</a></p>
 		<div id="chat-conv"></div>
 		<textarea id="chat-input" maxlength="16384"></textarea>
@@ -368,7 +370,7 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		<script src="./js/chatroom.js"></script>
 		</body>
 	</html>
-	`, sanitizedRoom, username, sanitizedRoom, sanitizedRoom, username)
+	`, sanitizedRoom, sanitizedRoom, username)
 }
 
 // Wraps golongpoll.FilePersistorAddOn with logic to keep track of the

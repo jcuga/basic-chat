@@ -57,6 +57,10 @@ function chatTimestamp(timestamp) {
 }
 
 function timeAgoTimestamp(timestamp) {
+    // special case for zero value
+    if (timestamp == 0) {
+        return "Never";
+    }
     var date = new Date(timestamp);
     var deltaSeconds = Math.floor((Date.now() - date) / (1000));
     if (deltaSeconds < 60) {
