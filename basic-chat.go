@@ -264,7 +264,7 @@ func wrapPublishHandler(lpManager *golongpoll.LongpollManager, users []User) htt
 			if strings.Contains(normMsg, item) {
 				category := "_____" + item
 				userMention := UserMention{
-					Message:          fmt.Sprintf("%s mentioned you in room: %s", username, pubData.Category),
+					Message:          fmt.Sprintf("%s mentioned you in: %s", username, pubData.Category),
 					RoomLink:         "./chat?room=" + url.QueryEscape(pubData.Category),
 					DisplayRoom:      sanitizeInput(pubData.Category),
 					RoomNotSanitized: pubData.Category,
@@ -305,6 +305,7 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 	<body>
 		<script>var currentUsername = "%s";</script>
 		<div id="home-header"></div>
+		<div id="notifications"></div>
 
 		<h2>Topics</h2>
 		<div id="recent-rooms"></div>
@@ -313,7 +314,7 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 		<form action="./create-room" method="post">
 			<label for="create-room-room">Create Chat Room:</label>
 			<input type="text" id="create-room-room" name="room"><br>
-			<input type="submit" value="Submit">
+			<input type="submit" disabled id="create-room-submit" value="Submit">
 		</form>
 		<h2>Users</h2>
 		<div id="recent-users"></div>
@@ -355,10 +356,13 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 		<div id="room-header"></div>
+		<div id="notifications"></div>
 		<p><a href="./">Home</a></p>
 		<div id="chat-conv"></div>
 		<textarea id="chat-input" maxlength="16384"></textarea>
-		<button type="button" id="chat-send">Send</button>
+		<button type="button" disabled id="chat-send">Send</button>
+
+		<div id="recent-users"></div>
 
 		<script>
 			var chatroomCategory="%s";

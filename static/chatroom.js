@@ -63,3 +63,20 @@ function getChatMsgHtml(timestamp, sender, msg, currentUser) {
             " <div class=\"chat-body\">" + formatChatBody(msg) + "</div>" +
             "</div>"
 }
+
+window.onload = function() {
+    loadUsers();
+    chatInput.value = '';
+    chatInput.addEventListener("keydown", function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+        // Cancel the default action, if needed
+        event.preventDefault();
+        // Trigger the button element with a click
+        sendButton.click();
+        }
+    });
+
+    chatInput.addEventListener("keyup", function(event) {
+        sendButton.disabled = chatInput.value.length == 0;
+    });
+};

@@ -31,6 +31,9 @@ function formatChatBody(msg) {
         }
     }
 
+    // Add span around any user-mentions (@username)
+    sanitizedBody = sanitizedBody.replace(/(^|\s)(@\w+)/g, '$1<span class="user-mention">$2</span>');
+
     // TODO: add span around user mentions
     return preserveSpaces(sanitizedBody);
 }
@@ -81,4 +84,50 @@ function timeAgoTimestamp(timestamp) {
     } else {
         return Math.floor(deltaSeconds/(60*60*24)) + " days ago";
     }
+}
+
+var noteClient = golongpoll.newClient({
+    subscribeUrl: "./events",
+    category: "_____@" + currentUsername,
+    publishUrl: "./publish",
+    // Get all events ever for given user, the UI will show only the last N
+    // and page backwards/show-more.
+    sinceTime: 1,
+    loggingEnabled: false,
+    onEvent: function (event) {
+        document.getElementById("notifications").insertAdjacentHTML('beforeend', 
+            getNotificationHtml(event.timestamp, event.data));
+    },
+});
+
+
+function loadUsers() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            var resp = JSON.parse(this.responseText);
+            var userActiveList = Object.entries(resp);
+            var sortedUsers = userActiveList.sort(function(a, b){return b[1] - a[1]});
+            usersDiv = document.getElementById("recent-users");
+            usersDiv.innerHTML = "";
+            for (var i = 0; i < sortedUsers.length; ++i) {
+                usersDiv.insertAdjacentHTML('beforeend', getUserHtml(sortedUsers[i][0], sortedUsers[i][1]));
+            }
+            setTimeout(loadUsers, 30000);
+        }
+    };
+    xhttp.open("GET", "/users", true);
+    xhttp.send();
+}
+
+function getUserHtml(username, timestamp) {
+    return "<div class=\"active-user-item\">" + username + ": " + timeAgoTimestamp(timestamp) + "</div>";
+}
+
+function getNotificationHtml(timestamp, data) {
+    return "<div class=\"notification\">" +
+        "<a class=\"notification-title\" href=\"" + data.room_link+ "\">" + data.msg + "</a>" +
+        "<div class=\"notification-timestam\">" + timeAgoTimestamp(timestamp) +"</div>" +
+        "<div class=\"notification-msg\">" + data.original_msg + "</div>" +
+    "</div>";
 }

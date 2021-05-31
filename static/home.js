@@ -1,29 +1,6 @@
 var homeHeader = document.getElementById("home-header");
 homeHeader.innerHTML = "Hello, " + sanitize(currentUsername);
 
-function loadUsers() {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            var resp = JSON.parse(this.responseText);
-            var userActiveList = Object.entries(resp);
-            var sortedUsers = userActiveList.sort(function(a, b){return b[1] - a[1]});
-            usersDiv = document.getElementById("recent-users");
-            usersDiv.innerHTML = "";
-            for (var i = 0; i < sortedUsers.length; ++i) {
-                usersDiv.insertAdjacentHTML('beforeend', getUserHtml(sortedUsers[i][0], sortedUsers[i][1]));
-            }
-            setTimeout(loadUsers, 30000);
-        }
-    };
-    xhttp.open("GET", "/users", true);
-    xhttp.send();
-}
-
-function getUserHtml(username, timestamp) {
-    return "<div class=\"active-user-item\">" + username + ": " + timeAgoTimestamp(timestamp) + "</div>";
-}
-
 function loadRooms() {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -56,4 +33,21 @@ function getRoomHtml(room, lastChat) {
 window.onload = function() {
     loadRooms();
     loadUsers();
+
+    var createRoomInput = document.getElementById("create-room-room");
+    var createRoomSubmit = document.getElementById("create-room-submit");
+    createRoomInput.value = '';
+    createRoomInput.addEventListener("keydown", function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+        // Cancel the default action, if needed
+        event.preventDefault();
+        // Trigger the button element with a click
+        createRoomSubmit.click();
+        }
+    });
+
+    createRoomInput.addEventListener("keyup", function(event) {
+        createRoomSubmit.disabled = createRoomInput.value.length == 0;
+    });
+
 };
