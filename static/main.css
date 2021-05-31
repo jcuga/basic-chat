@@ -21,14 +21,22 @@
     color: red;
 }
 
-.chat-body {
-
+.chat-body.truncate {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+    max-height: 1em;
 }
 
 .chat-msg-code {
     font-family: monospace;
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: nowrap;
+    max-height: 48em;
 }
 
 .chat-msg-link {
 
 }
+

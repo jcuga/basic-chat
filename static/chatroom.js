@@ -55,3 +55,11 @@ chatInput.addEventListener("keydown", function(event) {
       sendButton.click();
     }
   });
+
+function getChatMsgHtml(timestamp, sender, msg, currentUser) {
+    var msgSenderClass = currentUser.toLowerCase() == sender.toLowerCase() ? "chat-from-me" : "chat-from-other";
+    return "<div class=\"chat-msg\"><span class=\"chat-timestamp\">" + (chatTimestamp(timestamp)) +
+            " </span><span class=\"chat-username " + msgSenderClass + "\">" + sanitize(sender) + "</span>" +
+            " <div class=\"chat-body\">" + formatChatBody(msg) + "</div>" +
+            "</div>"
+}

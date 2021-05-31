@@ -49,7 +49,7 @@ function getRoomHtml(room, lastChat) {
     return "<div class=\"active-room-item\"><div><a href=\"./chat?room=" + encodeURIComponent(lastChat.category) + "\">" + sanitize(room) + "</a> <span class=\"room-timestamp\">" + timeAgoTimestamp(lastChat["timestamp"]) + "</span></div>" +
      "<div>" +
      " </span><span class=\"chat-username " + msgSenderClass + "\">" + sanitize(chatMsg.username) + "</span>" +
-     " <span class=\"chat-body\">" + formatChatBody(chatMsg.msg) + "</span>" +
+     " <div class=\"chat-body truncate\">" + formatChatBody(chatMsg.msg) + "</div>" +
      "</div></div>";
 }
 

@@ -382,7 +382,10 @@ type LastEventPerCategoryAddOn struct {
 
 func (a *LastEventPerCategoryAddOn) OnPublish(event *golongpoll.Event) {
 	a.FilePersistor.OnPublish(event)
-	a.LastEventPerCategory.Set(event.Category, event)
+	// Ignore the user-mention notifications
+	if !strings.HasPrefix(event.Category, "_____@") {
+		a.LastEventPerCategory.Set(event.Category, event)
+	}
 }
 
 func (a *LastEventPerCategoryAddOn) OnShutdown() {
@@ -402,7 +405,11 @@ func (a *LastEventPerCategoryAddOn) getOnStartInputEvents(fileChan <-chan *golon
 	for {
 		event, ok := <-fileChan
 		if ok {
-			a.LastEventPerCategory.Set(event.Category, event)
+			// Ignore the user-mention notifications
+			if !strings.HasPrefix(event.Category, "_____@") {
+				a.LastEventPerCategory.Set(event.Category, event)
+			}
+
 			outChan <- event
 		} else {
 			// channel closed, we're done. Close our out channel.

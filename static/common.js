@@ -40,8 +40,11 @@ function preserveSpaces(input) {
     input = input.replace(/\n\s*\n\s*\n/g, '\n\n');
     // turn newlines into <br>
     input = input.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    // turn tabs into spaces, and preserve multiple spaces.
+    // NOTE: don't convert every whitespace into nbsp as the non-breaking
+    // aspect makes wordwrap stuff not happen.
     input = input.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-    input = input.replace(/\s/g, '&nbsp;');
+    input = input.replace(/\s\s/g, '&nbsp;&nbsp;');
     return input;
 }
 
@@ -78,12 +81,4 @@ function timeAgoTimestamp(timestamp) {
     } else {
         return Math.floor(deltaSeconds/(60*60*24)) + " days ago";
     }
-}
-
-function getChatMsgHtml(timestamp, sender, msg, currentUser) {
-    var msgSenderClass = currentUser.toLowerCase() == sender.toLowerCase() ? "chat-from-me" : "chat-from-other";
-    return "<div class=\"chat-msg\"><span class=\"chat-timestamp\">" + (chatTimestamp(timestamp)) +
-            " </span><span class=\"chat-username " + msgSenderClass + "\">" + sanitize(sender) + "</span>" +
-            " <span class=\"chat-body\">" + formatChatBody(msg) + "</span>" +
-            "</div>"
 }
