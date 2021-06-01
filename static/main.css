@@ -1,7 +1,70 @@
-.chat-msg {
-    padding: 0.25em;
+body {
+    background-color: #cbc2e2;
+    color: #000000;
+    font-size: 1.0em;
+    font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
+#app {
+    max-width: 40em;
+    margin: 0 auto;
+    background-color: #dedae9;
+}
+
+#header {
+    background-color: #483872;
+    padding: 0.5em;
+    color: #FFFFFF;
+}
+
+#header div {
+    display: inline;
+}
+
+#header a, #header a:visited {
+    color: #FFFFFF;
+}
+
+#recent-users {
+    display: none;
+}
+
+#notifications {
+    display: none;
+}
+
+#chat-conv {
+    min-height: 30%;
+    max-height: 85%;
+    overflow-y: scroll;
+    padding: 0 0 1em 0;
+    margin: 0;
+}
+
+#chat-form {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#chat-form textarea {
+    width: 100%;
+    resize: none;
+    height: 4em;
+}
+
+.chat-msg {
+    padding: 0.25em 0.5em 0.25em 0.5em;
+    overflow-x:hidden;
+}
+
+.chat-msg:nth-child(even) {
+    background-color: #FFFFFF;
+}
+
+.chat-msg:nth-child(odd) {
+    background-color: #EEEEEE;
+}
 .chat-timestamp {
     font-style: italic;
     color: #707070;
@@ -19,6 +82,10 @@
 
 .chat-from-other {
     color: red;
+}
+
+.chat-body {
+    display: inline;
 }
 
 .chat-body.truncate {
@@ -40,7 +107,11 @@
     overflow-x: auto;
     overflow-y: auto;
     white-space: nowrap;
-    max-height: 48em;
+    max-height: 36em;
+    padding: 1em;
+    margin: 0.25em;
+    color: #006622;
+    background-color: #CCCCCC;
 }
 
 .chat-msg-link {

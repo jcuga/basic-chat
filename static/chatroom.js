@@ -1,5 +1,7 @@
-var roomHeader = document.getElementById("room-header");
-roomHeader.innerHTML = "Hello, " + sanitize(currentUsername) + ". Room: " + sanitize(chatroomCategory);
+document.getElementById("room-info").innerHTML = sanitize(chatroomCategory);
+document.getElementById("user-info").innerHTML = sanitize(currentUsername);
+
+var chatConv = document.getElementById("chat-conv");
 
 var client = golongpoll.newClient({
     subscribeUrl: "./events",
@@ -10,10 +12,15 @@ var client = golongpoll.newClient({
     sinceTime: 1,
     loggingEnabled: false,
     onEvent: function (event) {
-        document.getElementById("chat-conv").insertAdjacentHTML('beforeend', 
+        chatConv.insertAdjacentHTML('beforeend', 
             getChatMsgHtml(event.timestamp, event.data["username"], event.data["msg"], currentUsername));
+        scrollToBottom();
     },
 });
+
+function scrollToBottom() {
+    chatConv.scrollTop = chatConv.scrollHeight;
+}
 
 var sendButton = document.getElementById("chat-send");
 var chatInput = document.getElementById("chat-input");
@@ -53,6 +60,7 @@ chatInput.addEventListener("keydown", function(event) {
       event.preventDefault();
       // Trigger the button element with a click
       sendButton.click();
+      scrollToBottom();
     }
   });
 
@@ -66,6 +74,7 @@ function getChatMsgHtml(timestamp, sender, msg, currentUser) {
 
 window.onload = function() {
     loadUsers();
+    scrollToBottom();
     chatInput.value = '';
     chatInput.addEventListener("keydown", function(event) {
         if (event.key === 'Enter' && !event.shiftKey) {

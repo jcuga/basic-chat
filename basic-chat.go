@@ -355,20 +355,25 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
-		<div id="room-header"></div>
-		<div id="notifications"></div>
-		<p><a href="./">Home</a></p>
-		<div id="chat-conv"></div>
-		<textarea id="chat-input" maxlength="16384"></textarea>
-		<button type="button" disabled id="chat-send">Send</button>
-
-		<div id="recent-users"></div>
+		<div id="app">
+			<div id="header">
+				<div id="home-link"><a href="./">Home</a></div>
+				<div id="room-info"></div>
+				<div id="user-info"></div>
+			</div>
+			<div id="notifications"></div>
+			<div id="recent-users"></div>
+			<div id="chat-conv"></div>
+			<div id="chat-form">
+				<textarea id="chat-input" maxlength="16384"></textarea>
+				<button type="button" disabled id="chat-send">Send</button>
+			</div>
+		</div>
 
 		<script>
 			var chatroomCategory="%s";
 			var currentUsername="%s";
 		</script>
-
 		<script src="./js/client.js"></script>
 		<script src="./js/common.js"></script>
 		<script src="./js/chatroom.js"></script>
