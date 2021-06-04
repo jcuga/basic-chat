@@ -16,7 +16,7 @@ function loadRooms() {
             setTimeout(loadRooms, 30000);
         }
     };
-    xhttp.open("GET", "/last-chats", true);
+    xhttp.open("GET", "./last-chats", true);
     xhttp.send();
 }
 

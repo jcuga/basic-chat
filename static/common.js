@@ -116,7 +116,7 @@ function loadUsers() {
             setTimeout(loadUsers, 30000);
         }
     };
-    xhttp.open("GET", "/users", true);
+    xhttp.open("GET", "./users", true);
     xhttp.send();
 }
 
