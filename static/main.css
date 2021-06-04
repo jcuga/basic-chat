@@ -1,44 +1,116 @@
 body {
-    background-color: #cbc2e2;
+    background-color: #a5997e;
     color: #000000;
     font-size: 1.0em;
     font-family: Georgia, 'Times New Roman', Times, serif;
+    padding: 0;
+    margin: 0;
 }
 
 #app {
-    max-width: 40em;
+    max-width: 60em;
+    padding: 0;
     margin: 0 auto;
-    background-color: #dedae9;
+    background-color: #fffaf4;
+}
+
+#app-title {
+    font-size: 1.75em;
+    font-weight: normal;
+    float: left;
+}
+
+#greeting {
+    float: right;
+}
+
+h2 {
+    font-size: 1.5em;
+    font-weight: normal;
+    padding: 0;
+    margin: 0.25em 0 0.5em 0.5em;
+    color:#380022;
 }
 
 #header {
-    background-color: #483872;
+    background-color: #f3dba3;
     padding: 0.5em;
-    color: #FFFFFF;
+    margin: 0;
+    height: 2em;
+    font-size: 1em;
+    color: #5d0038;
+}
+#home-link {
+    float: left;
+    margin-right: 0.25em;
 }
 
-#header div {
-    display: inline;
+#home-link::after {
+    font-weight: bold;
+    content: " > ";
 }
 
 #header a, #header a:visited {
-    color: #FFFFFF;
+    color:fuchsia;
+}
+
+#create-room-wrapper {
+    padding: 0 0 1.0em 1.0em;
+}
+.chatroom #recent-users {
+    display: none;
 }
 
 #recent-users {
-    display: none;
+    margin: 0;
+    padding: 0 0 0 1.0em;
 }
 
 #notifications {
+    margin: 1em;
+    max-height: 16em;
+    overflow: auto;
+    background-color: #fff1df;
+}
+
+.chatroom #notifications {
     display: none;
 }
 
+#recent-rooms {
+    margin: 1em;
+    max-height: 24em;
+    overflow: auto;
+    background-color: #fff1df;
+}
+
+#room-info {
+    float: left;
+    font-weight: bold;
+    white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    max-width: 14em;
+}
+
+#user-info {
+    float: right;
+}
+
 #chat-conv {
-    min-height: 30%;
-    max-height: 85%;
+    min-height: 5em;
     overflow-y: scroll;
     padding: 0 0 1em 0;
     margin: 0;
+
+    /* Firefox */
+    height: -moz-calc(100% - 7.5em);
+    /* WebKit */
+    height: -webkit-calc(100% 7.5em);
+    /* Opera */
+    height: -o-calc(100% - 7.5em);
+    /* Standard */
+    height: calc(100% - 7.5em);
 }
 
 #chat-form {
@@ -48,6 +120,7 @@ body {
 }
 
 #chat-form textarea {
+    margin: 0;
     width: 100%;
     resize: none;
     height: 4em;
@@ -58,30 +131,25 @@ body {
     overflow-x:hidden;
 }
 
-.chat-msg:nth-child(even) {
-    background-color: #FFFFFF;
-}
-
-.chat-msg:nth-child(odd) {
-    background-color: #EEEEEE;
-}
 .chat-timestamp {
+    font-size: 0.85em;
     font-style: italic;
     color: #707070;
 }
 
 .chat-username {
+    font-size: 0.85em;
     font-weight: bold;
     margin-left: 0.25em;
-    margin-right: 0.5em;
+    margin-right: 0.25em;
 }
 
 .chat-from-me {
-    color: blue;
+    color:#4141ad;
 }
 
 .chat-from-other {
-    color: red;
+    color:#a02525;
 }
 
 .chat-body {
@@ -95,7 +163,53 @@ body {
     max-height: 1em;
 }
 
+div.active-room-item {
+    margin: 0 0 0.75em 0;
+    padding: 0;
+}
+
+div.active-room-item a {
+    color: fuchsia;
+}
+
+div.notification {
+    padding: 0.25em;
+    margin-bottom: 0.5em;
+}
+
+.notification-timestamp {
+    font-size: 0.85em;
+    font-style: italic;
+    color: #707070;
+    display: block;
+    float: left;
+}
+
+.room-timestamp {
+    font-size: 0.85em;
+    font-style: italic;
+    color: #707070;
+    padding-right: 0.5em;
+}
+
+.notification-title {
+    color: fuchsia;
+    display: block;
+    float: left;
+    margin-left: 0.5em;
+    white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    max-width: 36em;
+}
+
+.notification-title:visited {
+    color: fuchsia
+}
+
 .notification-msg {
+    display: block;
+    clear: both;
     white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -110,16 +224,27 @@ body {
     max-height: 36em;
     padding: 1em;
     margin: 0.25em;
-    color: #006622;
-    background-color: #CCCCCC;
+    color: #33FF00;
+    background-color: #422c05;
 }
 
 .chat-msg-link {
+    color:fuchsia;
+}
 
+.chat-msg-link:visited {
+    color:fuchsia;
 }
 
 .chat-body .user-mention {
     font-weight: bold;
+    background-color: #fbf9ba;
+    color: #000000;
+}
+
+.notification .user-mention {
+    font-weight: bold;
+    color: #000000;
 }
 
 #chat-send {

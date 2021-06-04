@@ -126,8 +126,8 @@ function getUserHtml(username, timestamp) {
 
 function getNotificationHtml(timestamp, data) {
     return "<div class=\"notification\">" +
+        "<span class=\"notification-timestamp\">" + timeAgoTimestamp(timestamp) +"</span>" +
         "<a class=\"notification-title\" href=\"" + data.room_link+ "\">" + sanitize(data.msg) + "</a>" +
-        "<div class=\"notification-timestam\">" + timeAgoTimestamp(timestamp) +"</div>" +
         "<div class=\"notification-msg\">" + formatChatBody(data.original_msg) + "</div>" +
     "</div>";
 }

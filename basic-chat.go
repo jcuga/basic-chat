@@ -304,20 +304,30 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 		<script>var currentUsername = "%s";</script>
-		<div id="home-header"></div>
-		<div id="notifications"></div>
 
-		<h2>Topics</h2>
-		<div id="recent-rooms"></div>
+		<div id="app" class="homepage">
+			<div id="header">
+				<div id="app-title">Basic Chat</div>
+				<div id="greeting"></div>
+			</div>
 
-		<h2>Create Topic</h2>
-		<form action="./create-room" method="post">
-			<label for="create-room-room">Create Chat Room:</label>
-			<input type="text" id="create-room-room" name="room"><br>
-			<input type="submit" disabled id="create-room-submit" value="Submit">
-		</form>
-		<h2>Users</h2>
-		<div id="recent-users"></div>
+			<h2>Users</h2>
+			<div id="recent-users"></div>
+
+			<h2>Notifications</h2>
+			<div id="notifications"></div>
+
+			<h2>Room Activity</h2>
+			<div id="recent-rooms"></div>
+
+			<h2>Create Room</h2>
+			<div id="create-room-wrapper">
+			<form action="./create-room" method="post">
+				<input type="text" id="create-room-room" name="room"><br>
+				<input type="submit" disabled id="create-room-submit" value="Submit">
+			</form>
+			</div>
+		</div>
 
 		<script src="./js/client.js"></script>
 		<script src="./js/common.js"></script>
@@ -355,7 +365,7 @@ func chatroomPage(w http.ResponseWriter, r *http.Request) {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 	<body>
-		<div id="app">
+		<div id="app" class="chatroom">
 			<div id="header">
 				<div id="home-link"><a href="./">Home</a></div>
 				<div id="room-info"></div>

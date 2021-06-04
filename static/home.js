@@ -1,4 +1,4 @@
-var homeHeader = document.getElementById("home-header");
+var homeHeader = document.getElementById("greeting");
 homeHeader.innerHTML = "Hello, " + sanitize(currentUsername);
 
 function loadRooms() {
@@ -23,7 +23,7 @@ function loadRooms() {
 function getRoomHtml(room, lastChat) {
     var chatMsg = lastChat["data"];
     var msgSenderClass = currentUsername.toLowerCase() == chatMsg.username.toLowerCase() ? "chat-from-me" : "chat-from-other";
-    return "<div class=\"active-room-item\"><div><a href=\"./chat?room=" + encodeURIComponent(lastChat.category) + "\">" + sanitize(room) + "</a> <span class=\"room-timestamp\">" + timeAgoTimestamp(lastChat["timestamp"]) + "</span></div>" +
+    return "<div class=\"active-room-item\"><div><span class=\"room-timestamp\">" + timeAgoTimestamp(lastChat["timestamp"]) + "</span><a href=\"./chat?room=" + encodeURIComponent(lastChat.category) + "\">" + sanitize(room) + "</a></div>" +
      "<div>" +
      " </span><span class=\"chat-username " + msgSenderClass + "\">" + sanitize(chatMsg.username) + "</span>" +
      " <div class=\"chat-body truncate\">" + formatChatBody(chatMsg.msg) + "</div>" +
