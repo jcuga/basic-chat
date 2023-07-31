@@ -49,7 +49,7 @@ func main() {
 	staticDir := flag.String("static", "./static/", "where the static directory is located relative to where this binary runs.")
 	persistFilename := flag.String("saveChatsTo", "./chats.json", "Where to save chat history so not lost when server is restarted.")
 	usersList := flag.String("accounts", "", "comma delimited user:pwd for basic auth accounts.")
-	chatHistorySize := flag.Uint("-historySize", 250, "Max number of chats in history per chat room.")
+	chatHistorySize := flag.Uint("historySize", 250, "Max number of chats in history per chat room.")
 
 	flag.Parse()
 
